@@ -1,7 +1,8 @@
 <?php
 
-App::uses('AppController', 'Controller');
+    App::uses('AppController', 'Controller');
 
-class RabbitMQAppController extends AppController {
+    class RabbitMQAppController extends AppController
+    {
 
-}
+    }

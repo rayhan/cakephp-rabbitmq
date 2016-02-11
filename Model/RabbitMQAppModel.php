@@ -1,7 +1,8 @@
 <?php
 
-App::uses('AppModel', 'Model');
+    App::uses('AppModel', 'Model');
 
-class RabbitMQAppModel extends AppModel {
+    class RabbitMQAppModel extends AppModel
+    {
 
-}
+    }
