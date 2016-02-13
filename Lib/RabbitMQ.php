@@ -1,29 +1,31 @@
 <?php
 /**
- * CakeResque Lib File
+ * CakePHP-RabbitMQ Lib File
  *
- * Proxy class to Resque
+ * Proxy class to RabbitMQ
  *
- * PHP version 5
+ * PHP version 7
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @author        Wan Qi Chen <kami@kamisama.me>
- * @copyright     Copyright 2012, Wan Qi Chen <kami@kamisama.me>
- * @link          http://cakeresque.kamisama.me
- * @package       CakeResque
- * @subpackage	  CakeResque.Lib
- * @since         1.2.0
+ * @author        Elisio Leonardo <elisio.leonardo@gmail.com>
+ * @copyright     Copyright 2016, Elisio Leonardo <elisio.leonardo@gmail.com>
+ * @link          http://infomoz.net
+ * @package       RabbitMQ
+ * @subpackage	  RabbitMQ.Lib
+ * @since         0.2.0
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
 App::uses('Folder', 'Utility');
+        use PhpAmqpLib\Connection\AMQPConnection;
+        use PhpAmqpLib\Message\AMQPMessage;
 
 /**
- * CakeResque Class
+ * CakePHP-RabbitMQ Integration
  *
- * Proxy to Resque, enabling logging function
+ *
  */
 class RabbitMQ {
 
@@ -39,11 +41,7 @@ class RabbitMQ {
  * @return string Job Id.
  */
 	public static function publish($message,$exchange='router',$queue='default') {
-        App::import('Vendor', 'AMQPConnection', array('file' => 'PhpAmqpLib/Connection/AMQPConnection.php'));
-        App::import('Vendor', 'AMQPMessage', array('file' => 'PhpAmqpLib/Message/AMQPMessage.php'));
-
-
-        $conn = new PhpAmqpLib\Connection\AMQPConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST);
+        $conn = new AMQPConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST);
         $ch = $conn->channel();
 
 
@@ -68,7 +66,7 @@ class RabbitMQ {
 
         $ch->queue_bind($queue, $exchange);
 
-        $msg_body = implode(' ', array_slice($message, 1));
+        $msg_body = implode(' ', array_slice($message,0));
         $msg = new PhpAmqpLib\Message\AMQPMessage($msg_body, array('content_type' => 'text/plain',
                                                                  'delivery_mode' => 2));
         $ch->basic_publish($msg, $exchange);

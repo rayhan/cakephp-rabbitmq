@@ -1,20 +1,21 @@
 <?php
 App::uses('ShellDispatcher', 'Console');
+    use PhpAmqpLib\Connection\AMQPConnection;
 /**
- * CakeResque Shell File
+ * CakePHP-RabbiMQ Shell File
  *
  * Use to manage the workers via CLI
  *
- * PHP version 5
+ * PHP version 7
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @author        Wan Qi Chen <kami@kamisama.me>
- * @copyright     Copyright 2012, Wan Qi Chen <kami@kamisama.me>
- * @link          http://cakeresque.kamisama.me
- * @package       CakeResque
- * @subpackage	  CakeResque.Console.Command
+ * @author        Elisio Leonardo <elisio.leonardo@gmail.com>
+ * @copyright     Copyright 2016, Elisio Leonardo <elisio.leonardo@gmail.com>
+ * @link          http://infomoz.net
+ * @package       RabbitMQ
+ * @subpackage	  RabbitMQ.Console.Command
  * @since         0.5
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
@@ -22,63 +23,15 @@ App::uses('ShellDispatcher', 'Console');
 
 class RabbitMQShell extends Shell {
 
-	public $uses = array();
-
-/**
- * Absolute path to the php-resque library.
- *
- * @var string
- */
-	protected $_resqueLibrary = null;
-
-/**
- * Runtime arguments (from command line).
- *
- * @var array
- */
-	protected $_runtime = array();
-
-/**
- * CakeResque class, proxying the Resque library.
- *
- * Actually needed for testing purposes.
- *
- * @var string
- */
-	public static $cakeResque = 'CakeResque';
-
-/**
- * Pause time before rechecking if a worker is started in microseconds.
- *
- * Actually needed for testing purposes.
- *
- * @var integer
- */
-	public static $checkStartedWorkerBufferTime = 100000;
-
-/**
- * Plugin version.
- */
-	const VERSION = '4.0.2';
-
-/**
- * Startup callback.
- *
- * Initializes defaults.
- */
-	public function startup() {
-	}
 
 
 	public function main() {
-
-        App::import('Vendor', 'AMQPConnection', array('file' => 'PhpAmqpLib/Connection/AMQPConnection.php'));
 
         $exchange = 'router';
         $queue = 'default';
         $consumer_tag = 'consumer';
 
-        $conn = new PhpAmqpLib\Connection\AMQPConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST);
+        $conn = new AMQPConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST);
         $ch = $conn->channel();
 
         /*
@@ -111,20 +64,31 @@ class RabbitMQShell extends Shell {
         function process_message($msg)
         {
 
-            
+
             $args = explode(' ',$msg->body);
+
             $dispatcher = new ShellDispatcher($args, false);
-            $dispatcher->dispatch();
-            //$shell->dispatchShell($msg->body);
+            try{
+                $dispatcher->dispatch();
+            } catch(Exception $e){
 
 
-            $msg->delivery_info['channel']->
-                basic_ack($msg->delivery_info['delivery_tag']);
+                $newMessage = explode(' ',$msg->body);
+                $newMessage[]=$e->getMessage();
+                $newMessage[]=$e->getFile();
+                $newMessage[] = $e->getLine();
+                $newMessage[] = $e->getTraceAsString();
+                $newMessage[] = $e->getCode();
+                $newMessage[] =$e->getPrevious();
+                RabbitMQ::publish($newMessage,'unprocessed','unprocessed_messages');
+            }
+
+
+            $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
 
             // Send a message with the string "quit" to cancel the consumer.
             if ($msg->body === 'quit') {
-                $msg->delivery_info['channel']->
-                    basic_cancel($msg->delivery_info['consumer_tag']);
+                $msg->delivery_info['channel']->basic_cancel($msg->delivery_info['consumer_tag']);
             }
         }
 
@@ -155,36 +119,5 @@ class RabbitMQShell extends Shell {
 
 
 
-/**
- * Execute a shell command.
- *
- * @since 3.3.6
- * @codeCoverageIgnore
- * @param string $cmd Command to execute.
- * @return void
- */
-	protected function _exec($cmd) {
-		passthru($cmd);
-	}
-/**
- * Get the username of the current process owner.
- *
- * @since 4.0.0
- * @codeCoverageIgnore
- * @return string Username of the current process owner if found, false otherwise.
- */
-	private function __getProcessOwner() {
-		if (function_exists('posix_getpwuid')) {
-			$a = posix_getpwuid(posix_getuid());
-			return $a['name'];
-		} else {
-			$user = trim(exec('whoami', $o, $code));
-			if ($code === 0) {
-				return $user;
-			}
-			return false;
-		}
 
-		return false;
-	}
 }
