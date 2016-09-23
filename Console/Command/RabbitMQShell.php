@@ -2,24 +2,7 @@
 App::uses('ShellDispatcher', 'Console');
 use PhpAmqpLib\Connection\AMQPConnection;
 
-/**
- * CakePHP-RabbiMQ Shell File
- *
- * Use to manage the workers via CLI
- *
- * PHP version 7
- *
- * Licensed under The MIT License
- * Redistributions of files must retain the above copyright notice.
- *
- * @author        Elisio Leonardo <elisio.leonardo@gmail.com>
- * @copyright     Copyright 2016, Elisio Leonardo <elisio.leonardo@gmail.com>
- * @link          http://infomoz.net
- * @package       RabbitMQ
- * @subpackage      RabbitMQ.Console.Command
- * @since         0.5
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
- */
+
 class RabbitMQShell extends Shell
 {
 
@@ -58,7 +41,6 @@ class RabbitMQShell extends Shell
                 throw new Exception($e);
             }
             $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
-
             // Send a message with the string "quit" to cancel the consumer.
             if ($msg->body === 'quit') {
                 $msg->delivery_info['channel']->basic_cancel($msg->delivery_info['consumer_tag']);
