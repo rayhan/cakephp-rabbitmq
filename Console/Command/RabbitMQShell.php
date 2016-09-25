@@ -36,6 +36,7 @@ class RabbitMQShell extends Shell
                 $newMessage[] = $e->getTraceAsString();
                 $newMessage[] = $e->getCode();
                 $newMessage[] = $e->getPrevious();
+                $newMessage[] = debug_backtrace();
                 RabbitMQ::publish($newMessage, 'unprocessed', 'unprocessed_messages');
                 EmailSender::sendEmail('elisio.leonardo@gmail.com', $msg->body, $newMessage);
                 throw new Exception($e);
