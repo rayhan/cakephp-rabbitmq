@@ -28,7 +28,7 @@ class RabbitMQShell extends Shell
                 $dispatcher->dispatch();
             } catch (Exception $e) {
                 $newMessage = explode(' ', $msg->body);
-                RabbitMQ::publish($newMessage, 'unprocessed', 'requeueable_messages');
+                RabbitMQ::publish($newMessage, 'requeueable', 'requeueable_messages');
                 $newMessage[] = '==>';
                 $newMessage[] = $e->getMessage();
                 $newMessage[] = $e->getFile();
@@ -36,7 +36,6 @@ class RabbitMQShell extends Shell
                 $newMessage[] = $e->getTraceAsString();
                 $newMessage[] = $e->getCode();
                 $newMessage[] = $e->getPrevious();
-                $newMessage[] = debug_backtrace();
                 RabbitMQ::publish($newMessage, 'unprocessed', 'unprocessed_messages');
                 EmailSender::sendEmail('elisio.leonardo@gmail.com', $msg->body, $newMessage);
                 throw new Exception($e);
