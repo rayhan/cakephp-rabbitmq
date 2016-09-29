@@ -38,7 +38,6 @@ class RabbitMQShell extends Shell
                 $newMessage[] = $e->getPrevious();
                 RabbitMQ::publish($newMessage, 'unprocessed', 'unprocessed_messages');
                 EmailSender::sendEmail('elisio.leonardo@gmail.com', $msg->body, $newMessage);
-                throw new Exception($e);
             }
             $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
             // Send a message with the string "quit" to cancel the consumer.
