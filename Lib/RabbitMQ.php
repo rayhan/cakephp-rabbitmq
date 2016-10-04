@@ -49,11 +49,12 @@ class RabbitMQ
             'delay_exchange' => 'delay_router',
             'delay'        => false,
             'delay_time'    => 60,
+            'exchange_type'=>'direct'
         ], $options);
         $conn = new AMQPConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST);
         $ch = $conn->channel();
         $ch->queue_declare($options['queue'], false, true, false, false);
-        $ch->exchange_declare($options['exchange'], 'direct', false, true, false);
+        $ch->exchange_declare($options['exchange'], $options['exchange_type'], false, true, false);
         $ch->queue_bind($options['queue'], $options['exchange']);
 
         $msg_body = implode(' ', array_slice($message, 0));
