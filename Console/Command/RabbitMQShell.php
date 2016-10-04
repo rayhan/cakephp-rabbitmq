@@ -6,11 +6,10 @@ use PhpAmqpLib\Connection\AMQPConnection;
 class RabbitMQShell extends Shell
 {
 
-
     public function main()
     {
 
-        $exchange = 'router';
+        $exchange = 'default';
         $queue = 'default';
         $consumer_tag = 'consumer';
 
@@ -28,7 +27,7 @@ class RabbitMQShell extends Shell
                 $dispatcher->dispatch();
             } catch (Exception $e) {
                 $newMessage = explode(' ', $msg->body);
-                RabbitMQ::publish($newMessage, 'requeueable', 'requeueable_messages');
+                RabbitMQ::publish($newMessage, ['exchange'=>'requeueable', 'queue'=>'requeueable_messages']);
                 $newMessage[] = '==>';
                 $newMessage[] = $e->getMessage();
                 $newMessage[] = $e->getFile();
@@ -36,7 +35,7 @@ class RabbitMQShell extends Shell
                 $newMessage[] = $e->getTraceAsString();
                 $newMessage[] = $e->getCode();
                 $newMessage[] = $e->getPrevious();
-                RabbitMQ::publish($newMessage, 'unprocessed', 'unprocessed_messages');
+                RabbitMQ::publish($newMessage, ['exchange'=>'unprocessed', 'queue'=>'unprocessed_messages']);
                 EmailSender::sendEmail('elisio.leonardo@gmail.com', $msg->body, $newMessage);
             }
             $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
@@ -45,6 +44,8 @@ class RabbitMQShell extends Shell
                 $msg->delivery_info['channel']->basic_cancel($msg->delivery_info['consumer_tag']);
             }
         }
+
+
         $ch->basic_qos(null, 1, null);
         $ch->basic_consume($queue, $consumer_tag, false, false, false, false, 'process_message');
 

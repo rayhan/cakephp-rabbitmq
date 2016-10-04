@@ -32,7 +32,7 @@ class RabbitMQ
 
 
     /**
-     * Envia uma Mensagem para o CakeRabbit
+     * Envia uma Mensagem para o RabbitMQ
      *
      * @param string $queue Name of the queue to enqueue the job to.
      * @param string $class Class of the job.
@@ -40,19 +40,50 @@ class RabbitMQ
      * @param boolean $trackStatus Whether to track the status of the job.
      * @return string Job Id.
      */
-    public static function publish($message, $exchange = 'router', $queue = 'default')
+    public static function publish($message, $options = [])
     {
+        $options = array_merge([
+            'exchange'     => 'router',
+            'queue'        => 'default',
+            'delay_queue'   => 'delay_default',
+            'delay_exchange' => 'delay_router',
+            'delay'        => false,
+            'delay_time'    => 60,
+        ], $options);
         $conn = new AMQPConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST);
         $ch = $conn->channel();
-        $ch->queue_declare($queue, false, true, false, false);
-        $ch->exchange_declare($exchange, 'direct', false, true, false);
-        $ch->queue_bind($queue, $exchange);
+        $ch->queue_declare($options['queue'], false, true, false, false);
+        $ch->exchange_declare($options['exchange'], 'direct', false, true, false);
+        $ch->queue_bind($options['queue'], $options['exchange']);
+
         $msg_body = implode(' ', array_slice($message, 0));
         $msg = new PhpAmqpLib\Message\AMQPMessage($msg_body, [
             'content_type'  => 'text/plain',
             'delivery_mode' => 2,
         ]);
-        $ch->basic_publish($msg, $exchange);
+
+        if ($options['delay']) {
+            $ch->queue_declare(
+                $options['delay_queue'],
+                false,
+                true,
+                false,
+                false,
+                false,
+                [
+                    'x-message-ttl'          => ['I', $options['delay_time'] * 1000],
+                    // delay in seconds to milliseconds
+                    "x-expires"              => ['I', $options['delay_time'] * 1000 + 1000],
+                    'x-dead-letter-exchange' => ['S', $options['exchange']]
+                ]
+            );
+            $ch->exchange_declare($options['delay_exchange'], 'direct',false,true,false);
+            $ch->queue_bind($options['delay_queue'], $options['delay_exchange']);
+            $ch->basic_publish($msg, $options['delay_exchange']);
+        } else{
+            $ch->basic_publish($msg, $options['exchange']);
+        }
+
         $ch->close();
         $conn->close();
     }
