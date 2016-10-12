@@ -21,13 +21,17 @@ class RabbitMQShell extends Shell
 
         function process_message($msg)
         {
-            $args = explode(' ', $msg->body);
-            $dispatcher = new ShellDispatcher($args, false);
+            $msg_body = json_decode($msg->body,true);
+            if(isset($msg_body['params']) && is_array($msg_body['params'])){
+                $msg_body['params'] = json_encode($msg_body['params']);
+            }
+            $msg_body = array_values($msg_body);
+            $dispatcher = new ShellDispatcher($msg_body, false);
             try {
                 $dispatcher->dispatch();
             } catch (Exception $e) {
-                $newMessage = explode(' ', $msg->body);
-                RabbitMQ::publish($newMessage, ['exchange'=>'requeueable', 'queue'=>'requeueable_messages']);
+                RabbitMQ::publish(json_decode($msg->body,true), ['exchange'=>'requeueable', 'queue'=>'requeueable_messages']);
+                $newMessage[] = $msg->body;
                 $newMessage[] = '==>';
                 $newMessage[] = $e->getMessage();
                 $newMessage[] = $e->getFile();

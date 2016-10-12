@@ -48,7 +48,7 @@ class RabbitMQ
             'delay_queue'   => 'delay_default',
             'delay_exchange' => 'delay_router',
             'delay'        => false,
-            'delay_time'    => 60,
+            'delay_time'    => 120,
             'exchange_type'=>'direct'
         ], $options);
         $conn = new AMQPConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_VHOST);
@@ -57,9 +57,9 @@ class RabbitMQ
         $ch->exchange_declare($options['exchange'], $options['exchange_type'], false, true, false);
         $ch->queue_bind($options['queue'], $options['exchange']);
 
-        $msg_body = implode(' ', array_slice($message, 0));
+        $msg_body = json_encode($message);
         $msg = new PhpAmqpLib\Message\AMQPMessage($msg_body, [
-            'content_type'  => 'text/plain',
+            'content_type'  => 'application/json',
             'delivery_mode' => 2,
         ]);
 
